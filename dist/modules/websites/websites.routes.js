@@ -1,0 +1,16 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.websitesRoutes = void 0;
+const express_1 = require("express");
+const validate_js_1 = require("../../utils/validate.js");
+const pages_routes_js_1 = require("../pages/pages.routes.js");
+const websites_controller_js_1 = require("./websites.controller.js");
+const websites_validators_js_1 = require("./websites.validators.js");
+const router = (0, express_1.Router)({ mergeParams: true });
+exports.websitesRoutes = router;
+router.post("/", (0, validate_js_1.validateBody)(websites_validators_js_1.createWebsiteSchema), websites_controller_js_1.websitesController.create);
+router.get("/", websites_controller_js_1.websitesController.list);
+router.use("/:websiteId/pages", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), pages_routes_js_1.pagesRoutes);
+router.get("/:websiteId", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), websites_controller_js_1.websitesController.getOne);
+router.patch("/:websiteId", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), (0, validate_js_1.validateBody)(websites_validators_js_1.updateWebsiteSchema), websites_controller_js_1.websitesController.update);
+router.delete("/:websiteId", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), websites_controller_js_1.websitesController.delete);
