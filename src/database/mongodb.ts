@@ -18,7 +18,24 @@ export async function connectMongo(): Promise<void> {
       "MongoDB connected successfully"
     );
   } catch (error) {
-    logger.error({ err: error }, "MongoDB connection failed");
+    const message = error instanceof Error ? error.message : String(error);
+    const atlasBlocked =
+      message.includes("MongoDB Atlas") ||
+      message.includes("whitelist") ||
+      message.includes("ReplicaSetNoPrimary");
+
+    logger.error(
+      {
+        err: error,
+        ...(atlasBlocked
+          ? {
+              hint:
+                "MongoDB Atlas blocked this host. In Atlas → Network Access, allow Render (Add IP → Allow access from anywhere 0.0.0.0/0 for web services). Confirm MONGODB_URI on Render matches Atlas → Connect.",
+            }
+          : {}),
+      },
+      "MongoDB connection failed"
+    );
     throw error;
   }
 }
