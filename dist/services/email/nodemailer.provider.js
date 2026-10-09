@@ -29,6 +29,7 @@ class NodemailerEmailProvider {
             subject: input.subject,
             text: input.text,
             html: input.html,
+            replyTo: input.replyTo,
         });
     }
 }

@@ -6,6 +6,7 @@ exports.createWorkspace = createWorkspace;
 exports.listWorkspacesForUser = listWorkspacesForUser;
 exports.getWorkspaceForMember = getWorkspaceForMember;
 exports.updateWorkspaceForMember = updateWorkspaceForMember;
+exports.getWorkspaceBusinessProfile = getWorkspaceBusinessProfile;
 exports.selectWorkspace = selectWorkspace;
 exports.getCurrentWorkspace = getCurrentWorkspace;
 const mongoose_1 = require("mongoose");
@@ -14,6 +15,7 @@ const slugify_js_1 = require("../../utils/slugify.js");
 const users_model_js_1 = require("../users/users.model.js");
 const workspace_member_model_js_1 = require("./workspace-member.model.js");
 const workspaces_model_js_1 = require("./workspaces.model.js");
+const business_profile_types_js_1 = require("./business-profile.types.js");
 const workspaces_types_js_1 = require("./workspaces.types.js");
 async function assertWorkspaceMember(userId, workspaceId) {
     if (!mongoose_1.Types.ObjectId.isValid(workspaceId)) {
@@ -111,12 +113,7 @@ async function listWorkspacesForUser(userId) {
     }).lean();
     const roleByWorkspaceId = new Map(memberships.map((m) => [m.workspaceId.toString(), m.role]));
     return workspaces.map((w) => ({
-        id: w._id.toString(),
-        name: w.name,
-        slug: w.slug,
-        ownerId: w.ownerId.toString(),
-        createdAt: w.createdAt ?? new Date(),
-        updatedAt: w.updatedAt ?? new Date(),
+        ...(0, workspaces_types_js_1.toPublicWorkspaceFromLean)(w),
         role: roleByWorkspaceId.get(w._id.toString()) ?? "MEMBER",
     }));
 }
@@ -126,11 +123,30 @@ async function getWorkspaceForMember(userId, workspaceId) {
 }
 async function updateWorkspaceForMember(userId, workspaceId, input) {
     await assertWorkspaceMember(userId, workspaceId);
-    const workspace = await workspaces_model_js_1.WorkspaceModel.findByIdAndUpdate(workspaceId, { name: input.name.trim() }, { new: true });
+    const update = {};
+    if (input.name !== undefined) {
+        update.name = input.name.trim();
+    }
+    if (input.businessProfile !== undefined) {
+        const existing = await workspaces_model_js_1.WorkspaceModel.findById(workspaceId).select("businessProfile");
+        const merged = {
+            ...(0, business_profile_types_js_1.normalizeBusinessProfile)(existing?.businessProfile),
+            ...input.businessProfile,
+        };
+        update.businessProfile = merged;
+    }
+    const workspace = await workspaces_model_js_1.WorkspaceModel.findByIdAndUpdate(workspaceId, { $set: update }, { new: true });
     if (!workspace) {
         throw new error_middleware_js_1.AppError("Workspace not found", 404, "WORKSPACE_NOT_FOUND");
     }
     return (0, workspaces_types_js_1.toPublicWorkspace)(workspace);
+}
+async function getWorkspaceBusinessProfile(workspaceId) {
+    const workspace = await workspaces_model_js_1.WorkspaceModel.findById(workspaceId).select("businessProfile");
+    if (!workspace) {
+        throw new error_middleware_js_1.AppError("Workspace not found", 404, "WORKSPACE_NOT_FOUND");
+    }
+    return (0, business_profile_types_js_1.normalizeBusinessProfile)(workspace.businessProfile);
 }
 async function selectWorkspace(userId, workspaceId) {
     const ctx = await assertWorkspaceMember(userId, workspaceId);

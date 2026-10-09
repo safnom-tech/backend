@@ -58,6 +58,16 @@ exports.authController = {
             next(error);
         }
     },
+    firebaseLogin: async (req, res, next) => {
+        try {
+            const result = await authService.loginWithFirebase(req.body);
+            (0, auth_cookie_js_1.setAuthCookie)(res, result.accessToken);
+            (0, apiResponse_js_1.sendSuccess)(res, "Logged in successfully", result.user);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
     logout: (_req, res) => {
         (0, auth_cookie_js_1.clearAuthCookie)(res);
         (0, apiResponse_js_1.sendSuccess)(res, "Logged out successfully", null);

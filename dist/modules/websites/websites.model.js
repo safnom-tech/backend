@@ -13,12 +13,23 @@ const websiteSchema = new mongoose_1.Schema({
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: null },
     slug: { type: String, required: true, trim: true, lowercase: true },
+    publicId: { type: String, trim: true, uppercase: true },
+    subscriptionId: {
+        type: String,
+        trim: true,
+        uppercase: true,
+    },
     status: {
         type: String,
         required: true,
         enum: exports.WEBSITE_STATUSES,
         default: "DRAFT",
     },
+    subdomain: { type: String, trim: true, lowercase: true },
+    platformDomain: { type: String, trim: true, lowercase: true },
+    publishedAt: { type: Date, default: null },
+    publishedVersion: { type: Number, required: true, default: 0 },
+    publishedSnapshot: { type: mongoose_1.Schema.Types.Mixed, default: null },
     theme: {
         type: mongoose_1.Schema.Types.Mixed,
         default: () => ({
@@ -30,5 +41,14 @@ const websiteSchema = new mongoose_1.Schema({
     settings: { type: mongoose_1.Schema.Types.Mixed, default: () => ({}) },
 }, { timestamps: true });
 websiteSchema.index({ workspaceId: 1, slug: 1 }, { unique: true });
+websiteSchema.index({ publicId: 1 }, { unique: true, sparse: true });
+websiteSchema.index({ subscriptionId: 1 }, { unique: true, sparse: true });
 websiteSchema.index({ workspaceId: 1, updatedAt: -1 });
+websiteSchema.index({ subdomain: 1 }, {
+    unique: true,
+    partialFilterExpression: {
+        subdomain: { $exists: true, $type: "string" },
+    },
+});
+websiteSchema.index({ status: 1, subdomain: 1 });
 exports.WebsiteModel = (0, mongoose_1.model)("Website", websiteSchema);

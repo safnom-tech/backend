@@ -101,11 +101,8 @@ function pagesApi(wsId, websiteId) {
         const { agent } = await createUserWithCookie("page-sect@test.local");
         const wsId = await createWorkspace(agent);
         const siteId = await createWebsite(agent, wsId);
-        const page = await agent
-            .post(pagesApi(wsId, siteId))
-            .send({ name: "Home", pageType: "HOME" })
-            .expect(201);
-        const pageId = page.body.data.id;
+        const listed = await agent.get(pagesApi(wsId, siteId)).expect(200);
+        const pageId = listed.body.data.pages[0].id;
         const hero = await agent
             .post(`${pagesApi(wsId, siteId)}/${pageId}/sections`)
             .send({
@@ -155,34 +152,61 @@ function pagesApi(wsId, websiteId) {
             .delete(`${pagesApi(wsId, siteId)}/${created.body.data.id}`)
             .expect(200);
         const list = await agent.get(pagesApi(wsId, siteId)).expect(200);
-        strict_1.default.equal(list.body.data.pages.length, 0);
+        // Blank create seeds a Home page; only the Temp page should be gone.
+        strict_1.default.equal(list.body.data.pages.length, 1);
+        strict_1.default.equal(list.body.data.pages[0].slug, "home");
     });
 });
 (0, node_test_1.describe)("Templates API", () => {
     (0, node_test_1.it)("lists templates", async () => {
         const { agent } = await createUserWithCookie("tpl-list@test.local");
         const res = await agent.get(`${env_js_1.env.apiPrefix}/templates`).expect(200);
-        strict_1.default.ok(res.body.data.templates.length >= 5);
+        strict_1.default.equal(res.body.data.templates.length, 1);
+        strict_1.default.equal(res.body.data.templates[0].id, "ocean-crown");
     });
     (0, node_test_1.it)("applies template with cloned page and section ids", async () => {
         const { agent } = await createUserWithCookie("tpl-apply@test.local");
         const wsId = await createWorkspace(agent);
         const created = await agent
             .post(`${env_js_1.env.apiPrefix}/workspaces/${wsId}/websites`)
-            .send({ name: "From Template", templateId: "business-starter" })
+            .send({ name: "From Template", templateId: "ocean-crown" })
             .expect(201);
         strict_1.default.ok(created.body.data.theme?.colors);
+        strict_1.default.match(created.body.data.publicId, /^WEB-/);
         const siteId = created.body.data.id;
         const pages = await agent.get(pagesApi(wsId, siteId)).expect(200);
         strict_1.default.ok(pages.body.data.pages.length >= 1);
         const detail = await agent
-            .get(`${env_js_1.env.apiPrefix}/templates/business-starter`)
+            .get(`${env_js_1.env.apiPrefix}/templates/ocean-crown`)
             .expect(200);
         const templateHome = detail.body.data.pages.find((p) => p.slug === "home");
         const appliedHome = pages.body.data.pages.find((p) => p.slug === "home");
         strict_1.default.ok(templateHome && appliedHome);
         strict_1.default.equal(appliedHome.sections.length, templateHome.sections.length);
         for (const section of appliedHome.sections) {
+            strict_1.default.match(section.id, /^[a-f\d]{24}$/i);
+        }
+    });
+    (0, node_test_1.it)("applies Ocean Crown template with full page design", async () => {
+        const { agent } = await createUserWithCookie("tpl-ocean@test.local");
+        const wsId = await createWorkspace(agent);
+        const created = await agent
+            .post(`${env_js_1.env.apiPrefix}/workspaces/${wsId}/websites`)
+            .send({
+            name: "Ocean Crown",
+            templateId: "ocean-crown",
+        })
+            .expect(201);
+        strict_1.default.equal(created.body.data.theme?.colors?.primary, "#1a1a1a");
+        const siteId = created.body.data.id;
+        const pages = await agent.get(pagesApi(wsId, siteId)).expect(200);
+        strict_1.default.equal(pages.body.data.pages.length, 1);
+        const home = pages.body.data.pages[0];
+        strict_1.default.equal(home.sections.length, 7);
+        strict_1.default.equal(home.sections[0].settings.variant, "logistics");
+        strict_1.default.equal(home.sections[1].data.title, "Around the World");
+        strict_1.default.equal(home.sections[2].settings.variant, "serviceCards");
+        for (const section of home.sections) {
             strict_1.default.match(section.id, /^[a-f\d]{24}$/i);
         }
     });

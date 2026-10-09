@@ -3,10 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const app_js_1 = require("./app.js");
 const env_js_1 = require("./config/env.js");
 const mongodb_js_1 = require("./database/mongodb.js");
+const template_cache_js_1 = require("./cache/template-cache.js");
 const logger_js_1 = require("./utils/logger.js");
 async function startServer() {
-    logger_js_1.logger.info({ nodeEnv: env_js_1.env.nodeEnv }, "Starting Safnom API");
+    logger_js_1.logger.info({ nodeEnv: env_js_1.env.nodeEnv, templateSource: env_js_1.env.templateSource }, "Starting Safnom API");
     await (0, mongodb_js_1.connectMongo)();
+    await (0, template_cache_js_1.connectTemplateCache)();
     const app = (0, app_js_1.createApp)();
     const server = app.listen(env_js_1.env.port, () => {
         logger_js_1.logger.info({ port: env_js_1.env.port, apiPrefix: env_js_1.env.apiPrefix }, "HTTP server listening");
@@ -25,6 +27,7 @@ async function startServer() {
         logger_js_1.logger.info({ signal }, "Shutting down gracefully");
         server.close(async () => {
             try {
+                await (0, template_cache_js_1.disconnectTemplateCache)();
                 await (0, mongodb_js_1.disconnectMongo)();
                 process.exit(0);
             }

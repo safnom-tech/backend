@@ -14,7 +14,9 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.publishingRoutes = void 0;
+exports.publicPublishingRoutes = exports.publishingWebsiteRoutes = void 0;
 var publishing_routes_js_1 = require("./publishing.routes.js");
-Object.defineProperty(exports, "publishingRoutes", { enumerable: true, get: function () { return publishing_routes_js_1.publishingRoutes; } });
+Object.defineProperty(exports, "publishingWebsiteRoutes", { enumerable: true, get: function () { return publishing_routes_js_1.publishingWebsiteRoutes; } });
+var public_publishing_routes_js_1 = require("./public-publishing.routes.js");
+Object.defineProperty(exports, "publicPublishingRoutes", { enumerable: true, get: function () { return public_publishing_routes_js_1.publicPublishingRoutes; } });
 __exportStar(require("./publishing.types.js"), exports);

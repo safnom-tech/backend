@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.workspaceTemplatesRoutes = void 0;
+const express_1 = require("express");
+const validate_js_1 = require("../../utils/validate.js");
+const templates_controller_js_1 = require("./templates.controller.js");
+const templates_validators_js_1 = require("./templates.validators.js");
+const router = (0, express_1.Router)({ mergeParams: true });
+exports.workspaceTemplatesRoutes = router;
+router.get("/:templateId/preview", (0, validate_js_1.validateParams)(templates_validators_js_1.workspaceTemplatePreviewParamsSchema), templates_controller_js_1.templatesController.previewForWorkspace);

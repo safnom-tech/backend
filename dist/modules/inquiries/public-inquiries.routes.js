@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.publicInquiriesRoutes = void 0;
+const express_1 = require("express");
+const validate_js_1 = require("../../utils/validate.js");
+const inquiries_controller_js_1 = require("./inquiries.controller.js");
+const inquiries_validators_js_1 = require("./inquiries.validators.js");
+const router = (0, express_1.Router)();
+exports.publicInquiriesRoutes = router;
+router.post("/websites/:publicId/inquiries", (0, validate_js_1.validateParams)(inquiries_validators_js_1.publicWebsiteInquiryParamsSchema), (0, validate_js_1.validateBody)(inquiries_validators_js_1.submitInquiryBodySchema), inquiries_controller_js_1.inquiriesController.publicWebsite);

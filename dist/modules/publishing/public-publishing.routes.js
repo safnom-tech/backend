@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.publicPublishingRoutes = void 0;
+const express_1 = require("express");
+const validate_js_1 = require("../../utils/validate.js");
+const publishing_controller_js_1 = require("./publishing.controller.js");
+const publishing_validators_js_1 = require("./publishing.validators.js");
+const router = (0, express_1.Router)();
+exports.publicPublishingRoutes = router;
+router.get("/sites/:subdomain", (0, validate_js_1.validateParams)(publishing_validators_js_1.publicSubdomainParamSchema), (0, validate_js_1.validateQuery)(publishing_validators_js_1.publicSiteQuerySchema), publishing_controller_js_1.publicPublishingController.getSite);

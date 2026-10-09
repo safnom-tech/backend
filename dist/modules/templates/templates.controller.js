@@ -35,21 +35,35 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.templatesController = void 0;
 const apiResponse_js_1 = require("../../utils/apiResponse.js");
+const httpCache_js_1 = require("../../utils/httpCache.js");
 const templatesService = __importStar(require("./templates.service.js"));
 exports.templatesController = {
-    list: (_req, res, next) => {
+    list: async (req, res, next) => {
         try {
-            const templates = templatesService.listTemplates();
-            (0, apiResponse_js_1.sendSuccess)(res, "Templates retrieved successfully", { templates });
+            const query = req.query;
+            const result = await templatesService.listTemplates(query);
+            (0, httpCache_js_1.setPrivateHttpCache)(res, 120);
+            (0, apiResponse_js_1.sendSuccess)(res, "Templates retrieved successfully", result);
         }
         catch (error) {
             next(error);
         }
     },
-    getOne: (req, res, next) => {
+    getOne: async (req, res, next) => {
         try {
-            const template = templatesService.getTemplateById(String(req.params.templateId));
+            const template = await templatesService.getTemplateById(String(req.params.templateId));
+            (0, httpCache_js_1.setPrivateHttpCache)(res, 300);
             (0, apiResponse_js_1.sendSuccess)(res, "Template retrieved successfully", template);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+    previewForWorkspace: async (req, res, next) => {
+        try {
+            const payload = await templatesService.getTemplatePreviewForWorkspace(String(req.params.workspaceId), String(req.params.templateId));
+            (0, httpCache_js_1.setPrivateHttpCache)(res, 60);
+            (0, apiResponse_js_1.sendSuccess)(res, "Template preview retrieved successfully", payload);
         }
         catch (error) {
             next(error);

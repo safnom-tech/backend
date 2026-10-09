@@ -9,6 +9,7 @@ const router = (0, express_1.Router)();
 exports.authRoutes = router;
 router.post("/signup", (0, validate_js_1.validateBody)(auth_validators_js_1.signupSchema), auth_controller_js_1.authController.signup);
 router.post("/login", (0, validate_js_1.validateBody)(auth_validators_js_1.loginSchema), auth_controller_js_1.authController.login);
+router.post("/firebase", (0, validate_js_1.validateBody)(auth_validators_js_1.firebaseLoginSchema), auth_controller_js_1.authController.firebaseLogin);
 router.post("/logout", auth_controller_js_1.authController.logout);
 router.post("/forgot-password", (0, validate_js_1.validateBody)(auth_validators_js_1.forgotPasswordSchema), auth_controller_js_1.authController.forgotPassword);
 router.post("/reset-password", (0, validate_js_1.validateBody)(auth_validators_js_1.resetPasswordSchema), auth_controller_js_1.authController.resetPassword);

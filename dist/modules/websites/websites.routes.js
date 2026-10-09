@@ -11,6 +11,7 @@ exports.websitesRoutes = router;
 router.post("/", (0, validate_js_1.validateBody)(websites_validators_js_1.createWebsiteSchema), websites_controller_js_1.websitesController.create);
 router.get("/", websites_controller_js_1.websitesController.list);
 router.use("/:websiteId/pages", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), pages_routes_js_1.pagesRoutes);
+router.get("/:websiteId/preview", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), websites_controller_js_1.websitesController.preview);
 router.get("/:websiteId", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), websites_controller_js_1.websitesController.getOne);
 router.patch("/:websiteId", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), (0, validate_js_1.validateBody)(websites_validators_js_1.updateWebsiteSchema), websites_controller_js_1.websitesController.update);
 router.delete("/:websiteId", (0, validate_js_1.validateParams)(websites_validators_js_1.websiteIdParamSchema), websites_controller_js_1.websitesController.delete);

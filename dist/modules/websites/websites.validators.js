@@ -2,10 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.websiteIdParamSchema = exports.updateWebsiteSchema = exports.createWebsiteSchema = void 0;
 const zod_1 = require("zod");
-const websites_model_js_1 = require("./websites.model.js");
 const objectIdRegex = /^[a-f\d]{24}$/i;
 exports.createWebsiteSchema = zod_1.z.object({
-    name: zod_1.z.string().trim().min(1, "Name is required").max(120),
+    /** Falls back to workspace business profile name when omitted */
+    name: zod_1.z.string().trim().min(1).max(120).optional(),
     description: zod_1.z.string().trim().max(2000).optional(),
     templateId: zod_1.z.string().trim().min(1).max(80).optional(),
 });
@@ -20,7 +20,6 @@ exports.updateWebsiteSchema = zod_1.z
     .object({
     name: zod_1.z.string().trim().min(1).max(120).optional(),
     description: zod_1.z.string().trim().max(2000).nullable().optional(),
-    status: zod_1.z.enum(websites_model_js_1.WEBSITE_STATUSES).optional(),
     theme: themeSchema,
 })
     .refine((data) => Object.keys(data).length > 0, {

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.signup = signup;
 exports.login = login;
+exports.loginWithFirebase = loginWithFirebase;
 exports.forgotPassword = forgotPassword;
 exports.resetPassword = resetPassword;
 const env_js_1 = require("../../config/env.js");
@@ -12,6 +13,8 @@ const password_js_1 = require("../../utils/password.js");
 const reset_token_js_1 = require("../../utils/reset-token.js");
 const users_model_js_1 = require("../users/users.model.js");
 const users_types_js_1 = require("../users/users.types.js");
+const workspaces_service_js_1 = require("../workspaces/workspaces.service.js");
+const firebase_admin_js_1 = require("../../services/firebase/firebase-admin.js");
 const auth_password_reset_model_js_1 = require("./auth.password-reset.model.js");
 const RESET_EXPIRY_MS = 60 * 60 * 1000;
 async function signup(input) {
@@ -25,16 +28,27 @@ async function signup(input) {
         passwordHash,
         name: input.name ?? null,
     });
+    const workspaceName = input.name?.trim() ||
+        input.email.split("@")[0]?.trim() ||
+        "My workspace";
+    await (0, workspaces_service_js_1.createWorkspace)(user._id.toString(), { name: workspaceName });
     const accessToken = (0, jwt_js_1.signAccessToken)({
         sub: user._id.toString(),
         email: user.email,
     });
-    return { user: (0, users_types_js_1.toPublicUser)(user), accessToken };
+    const refreshed = await users_model_js_1.UserModel.findById(user._id);
+    return {
+        user: (0, users_types_js_1.toPublicUser)(refreshed ?? user),
+        accessToken,
+    };
 }
 async function login(input) {
     const user = await users_model_js_1.UserModel.findOne({ email: input.email }).select("+passwordHash");
     if (!user) {
         throw new error_middleware_js_1.AppError("Invalid email or password", 401, "INVALID_CREDENTIALS");
+    }
+    if (!user.passwordHash) {
+        throw new error_middleware_js_1.AppError("This account uses Google sign-in. Continue with Google or reset your password to add one.", 401, "PASSWORD_LOGIN_UNAVAILABLE");
     }
     const valid = await (0, password_js_1.verifyPassword)(input.password, user.passwordHash);
     if (!valid) {
@@ -45,6 +59,72 @@ async function login(input) {
         email: user.email,
     });
     return { user: (0, users_types_js_1.toPublicUser)(user), accessToken };
+}
+function workspaceNameFromUser(email, name) {
+    return (name?.trim() ||
+        email.split("@")[0]?.trim() ||
+        "My workspace");
+}
+async function issueAuthResult(userId) {
+    const user = await users_model_js_1.UserModel.findById(userId);
+    if (!user) {
+        throw new error_middleware_js_1.AppError("User not found", 404, "USER_NOT_FOUND");
+    }
+    const accessToken = (0, jwt_js_1.signAccessToken)({
+        sub: user._id.toString(),
+        email: user.email,
+    });
+    return { user: (0, users_types_js_1.toPublicUser)(user), accessToken };
+}
+async function loginWithFirebase(input) {
+    if (!(0, firebase_admin_js_1.isFirebaseAdminConfigured)()) {
+        throw new error_middleware_js_1.AppError("Google sign-in is not configured on the server", 503, "FIREBASE_NOT_CONFIGURED");
+    }
+    const profile = await (0, firebase_admin_js_1.verifyFirebaseIdToken)(input.idToken);
+    let user = await users_model_js_1.UserModel.findOne({ firebaseUid: profile.uid });
+    let isNewUser = false;
+    if (!user) {
+        user = await users_model_js_1.UserModel.findOne({ email: profile.email });
+        if (user) {
+            if (user.firebaseUid && user.firebaseUid !== profile.uid) {
+                throw new error_middleware_js_1.AppError("Email already linked to another Google account", 409, "ACCOUNT_CONFLICT");
+            }
+            user.firebaseUid = profile.uid;
+            if (profile.emailVerified) {
+                user.emailVerified = true;
+            }
+            if (!user.name && profile.name) {
+                user.name = profile.name;
+            }
+            await user.save();
+        }
+        else {
+            user = await users_model_js_1.UserModel.create({
+                email: profile.email,
+                firebaseUid: profile.uid,
+                name: profile.name,
+                emailVerified: profile.emailVerified,
+            });
+            isNewUser = true;
+        }
+    }
+    else {
+        if (profile.emailVerified) {
+            user.emailVerified = true;
+        }
+        if (!user.name && profile.name) {
+            user.name = profile.name;
+        }
+        if (user.isModified()) {
+            await user.save();
+        }
+    }
+    if (isNewUser) {
+        await (0, workspaces_service_js_1.createWorkspace)(user._id.toString(), {
+            name: workspaceNameFromUser(profile.email, profile.name),
+        });
+    }
+    return issueAuthResult(user._id.toString());
 }
 async function forgotPassword(input) {
     const user = await users_model_js_1.UserModel.findOne({ email: input.email });

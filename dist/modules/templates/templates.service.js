@@ -2,24 +2,24 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listTemplates = listTemplates;
 exports.getTemplateById = getTemplateById;
+exports.getTemplatePreviewForWorkspace = getTemplatePreviewForWorkspace;
 exports.applyTemplateToWebsite = applyTemplateToWebsite;
-const mongoose_1 = require("mongoose");
 const error_middleware_js_1 = require("../../middleware/error.middleware.js");
-const pages_model_js_1 = require("../pages/pages.model.js");
+const template_cache_js_1 = require("../../cache/template-cache.js");
+const apply_business_profile_js_1 = require("../workspaces/apply-business-profile.js");
+const workspaces_service_js_1 = require("../workspaces/workspaces.service.js");
+const pages_seed_js_1 = require("../pages/pages.seed.js");
 const websites_service_js_1 = require("../websites/websites.service.js");
 const websites_model_js_1 = require("../websites/websites.model.js");
 const websites_types_js_1 = require("../websites/websites.types.js");
-const templates_catalog_js_1 = require("./templates.catalog.js");
-function listTemplates() {
-    return templates_catalog_js_1.TEMPLATE_CATALOG.map(({ id, name, category, description }) => ({
-        id,
-        name,
-        category,
-        description,
-    }));
+const mongoose_1 = require("mongoose");
+const template_repository_js_1 = require("./template.repository.js");
+const template_preview_cache_js_1 = require("./template-preview-cache.js");
+async function listTemplates(input) {
+    return (0, template_repository_js_1.getTemplateRepository)().list(input);
 }
-function getTemplateById(templateId) {
-    const template = findTemplate(templateId);
+async function getTemplateById(templateId) {
+    const template = await (0, template_repository_js_1.getTemplateRepository)().getDefinition(templateId);
     return {
         id: template.id,
         name: template.name,
@@ -29,47 +29,63 @@ function getTemplateById(templateId) {
         pages: template.pages,
     };
 }
-function findTemplate(templateId) {
-    const template = templates_catalog_js_1.TEMPLATE_CATALOG.find((t) => t.id === templateId);
-    if (!template) {
-        throw new error_middleware_js_1.AppError("Template not found", 404, "TEMPLATE_NOT_FOUND");
+async function getTemplatePreviewForWorkspace(workspaceId, templateId) {
+    const businessProfile = await (0, workspaces_service_js_1.getWorkspaceBusinessProfile)(workspaceId);
+    const cache = (0, template_cache_js_1.getTemplateCache)();
+    const cacheKey = (0, template_preview_cache_js_1.previewCacheKey)(workspaceId, templateId, businessProfile);
+    const cached = await cache.get(cacheKey);
+    if (cached) {
+        return JSON.parse(cached);
     }
-    return template;
+    const template = await (0, template_repository_js_1.getTemplateRepository)().getDefinition(templateId);
+    const pages = (0, apply_business_profile_js_1.applyBusinessProfileToSeedPages)(template.pages, businessProfile);
+    const home = pages.find((p) => p.slug === "home") ??
+        pages.find((p) => p.pageType === "HOME") ??
+        pages[0];
+    if (!home) {
+        throw new error_middleware_js_1.AppError("Template has no pages", 404, "TEMPLATE_NOT_FOUND");
+    }
+    const applied = Boolean(businessProfile.businessName?.trim());
+    const payload = {
+        template: {
+            id: template.id,
+            name: template.name,
+            category: template.category,
+            description: template.description,
+        },
+        theme: template.theme,
+        businessProfileApplied: applied,
+        businessProfile,
+        page: {
+            name: home.name,
+            slug: home.slug,
+            pageType: home.pageType ?? "CUSTOM",
+            seo: {
+                title: home.seo?.title ?? null,
+                metaDescription: home.seo?.metaDescription ?? null,
+                socialImage: home.seo?.socialImage ?? null,
+            },
+            sections: home.sections.map((section, index) => ({
+                id: `tpl-preview-${index}`,
+                type: section.type,
+                order: section.order,
+                data: section.data,
+                settings: section.settings,
+            })),
+        },
+    };
+    await cache.set(cacheKey, JSON.stringify(payload), template_preview_cache_js_1.PREVIEW_CACHE_TTL_SECONDS);
+    return payload;
 }
 async function applyTemplateToWebsite(workspaceId, websiteId, templateId) {
     await (0, websites_service_js_1.assertWebsiteInWorkspace)(workspaceId, websiteId);
-    const template = findTemplate(templateId);
-    await websites_model_js_1.WebsiteModel.updateOne({
-        _id: new mongoose_1.Types.ObjectId(websiteId),
-        workspaceId: new mongoose_1.Types.ObjectId(workspaceId),
-    }, {
-        $set: {
-            theme: template.theme,
-        },
+    const template = await (0, template_repository_js_1.getTemplateRepository)().getDefinition(templateId);
+    const businessProfile = await (0, workspaces_service_js_1.getWorkspaceBusinessProfile)(workspaceId);
+    const pages = (0, apply_business_profile_js_1.applyBusinessProfileToSeedPages)(template.pages, businessProfile);
+    await (0, pages_seed_js_1.seedWebsiteContent)(workspaceId, websiteId, {
+        theme: template.theme,
+        pages,
     });
-    for (const pageDef of template.pages) {
-        const sections = pageDef.sections.map((s) => ({
-            _id: new mongoose_1.Types.ObjectId(),
-            type: s.type,
-            order: s.order,
-            data: { ...s.data },
-            settings: { ...s.settings },
-        }));
-        await pages_model_js_1.PageModel.create({
-            workspaceId: new mongoose_1.Types.ObjectId(workspaceId),
-            websiteId: new mongoose_1.Types.ObjectId(websiteId),
-            name: pageDef.name,
-            slug: pageDef.slug,
-            pageType: pageDef.pageType,
-            status: "DRAFT",
-            seo: {
-                title: pageDef.seo?.title ?? null,
-                metaDescription: pageDef.seo?.metaDescription ?? null,
-                socialImage: pageDef.seo?.socialImage ?? null,
-            },
-            sections,
-        });
-    }
     const website = await websites_model_js_1.WebsiteModel.findOne({
         _id: new mongoose_1.Types.ObjectId(websiteId),
         workspaceId: new mongoose_1.Types.ObjectId(workspaceId),
@@ -77,5 +93,7 @@ async function applyTemplateToWebsite(workspaceId, websiteId, templateId) {
     if (!website) {
         throw new error_middleware_js_1.AppError("Website not found", 404, "WEBSITE_NOT_FOUND");
     }
-    return (0, websites_types_js_1.toPublicWebsite)(website);
+    const { computeHasUnpublishedChanges } = await import("../websites/websites.service.js");
+    const hasUnpublishedChanges = await computeHasUnpublishedChanges(website);
+    return (0, websites_types_js_1.toPublicWebsite)(website, { hasUnpublishedChanges });
 }

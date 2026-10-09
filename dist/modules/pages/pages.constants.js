@@ -14,4 +14,5 @@ exports.SECTION_TYPES = [
     "FAQ",
     "CONTACT",
     "FOOTER",
+    "COMPOSED",
 ];

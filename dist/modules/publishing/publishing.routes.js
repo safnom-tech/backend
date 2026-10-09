@@ -1,8 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.publishingRoutes = void 0;
+exports.publishingWebsiteRoutes = void 0;
 const express_1 = require("express");
+const validate_js_1 = require("../../utils/validate.js");
 const publishing_controller_js_1 = require("./publishing.controller.js");
-const router = (0, express_1.Router)();
-exports.publishingRoutes = router;
-router.all("*", publishing_controller_js_1.publishingController.placeholder);
+const publishing_validators_js_1 = require("./publishing.validators.js");
+const router = (0, express_1.Router)({ mergeParams: true });
+exports.publishingWebsiteRoutes = router;
+router.post("/:websiteId/publish", (0, validate_js_1.validateParams)(publishing_validators_js_1.publishingParamsSchema), (0, validate_js_1.validateBody)(publishing_validators_js_1.publishBodySchema), publishing_controller_js_1.publishingController.publish);
+router.post("/:websiteId/unpublish", (0, validate_js_1.validateParams)(publishing_validators_js_1.publishingParamsSchema), publishing_controller_js_1.publishingController.unpublish);
+router.get("/:websiteId/publishing", (0, validate_js_1.validateParams)(publishing_validators_js_1.publishingParamsSchema), publishing_controller_js_1.publishingController.getState);
+router.patch("/:websiteId/publishing", (0, validate_js_1.validateParams)(publishing_validators_js_1.publishingParamsSchema), (0, validate_js_1.validateBody)(publishing_validators_js_1.updateSubdomainBodySchema), publishing_controller_js_1.publishingController.patchSubdomain);

@@ -2,7 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiRoutes = void 0;
 const express_1 = require("express");
+const validate_js_1 = require("../../utils/validate.js");
 const ai_controller_js_1 = require("./ai.controller.js");
-const router = (0, express_1.Router)();
+const ai_validators_js_1 = require("./ai.validators.js");
+const router = (0, express_1.Router)({ mergeParams: true });
 exports.aiRoutes = router;
-router.all("*", ai_controller_js_1.aiController.placeholder);
+router.post("/website/generate", (0, validate_js_1.validateBody)(ai_validators_js_1.generateWebsiteBodySchema), ai_controller_js_1.aiController.generateWebsite);
+router.post("/section/action", (0, validate_js_1.validateBody)(ai_validators_js_1.sectionActionBodySchema), ai_controller_js_1.aiController.sectionAction);
+router.post("/sections/generate", (0, validate_js_1.validateBody)(ai_validators_js_1.composedSectionGenerateBodySchema), ai_controller_js_1.aiController.generateComposedSection);
+router.post("/sections/regenerate", (0, validate_js_1.validateBody)(ai_validators_js_1.composedSectionRegenerateBodySchema), ai_controller_js_1.aiController.regenerateComposedSection);
+router.post("/sections/edit", (0, validate_js_1.validateBody)(ai_validators_js_1.composedSectionEditBodySchema), ai_controller_js_1.aiController.editComposedSection);
+router.post("/content/generate", (0, validate_js_1.validateBody)(ai_validators_js_1.fieldContentGenerateBodySchema), ai_controller_js_1.aiController.generateFieldContent);
