@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.templatesRoutes = void 0;
+const express_1 = require("express");
+const auth_middleware_js_1 = require("../../middleware/auth.middleware.js");
+const templates_controller_js_1 = require("./templates.controller.js");
+const router = (0, express_1.Router)();
+exports.templatesRoutes = router;
+router.use(auth_middleware_js_1.requireAuth);
+router.get("/", templates_controller_js_1.templatesController.list);
+router.get("/:templateId", templates_controller_js_1.templatesController.getOne);
