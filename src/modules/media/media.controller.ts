@@ -101,6 +101,25 @@ export const mediaController = {
     }
   },
 
+  publicContent: async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const mediaId = String(req.params.mediaId);
+      const { absolutePath, mimeType } =
+        await mediaService.getPublicMediaContent(mediaId);
+      res.type(mimeType);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      const stream = fs.createReadStream(absolutePath);
+      stream.on("error", (err) => next(err));
+      stream.pipe(res);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   replace: async (
     req: Request,
     res: Response,

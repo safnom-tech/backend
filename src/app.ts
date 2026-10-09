@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import pinoHttp from "pino-http";
+import { corsOptions } from "./config/cors.js";
 import { env } from "./config/env.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import { notFoundMiddleware } from "./middleware/notFound.middleware.js";
@@ -20,12 +21,7 @@ export function createApp(): express.Application {
     })
   );
 
-  app.use(
-    cors({
-      origin: env.frontendUrl,
-      credentials: true,
-    })
-  );
+  app.use(cors(corsOptions));
 
   app.use(cookieParser());
   app.use(express.json());

@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { getStorageService } from "../../storage/index.js";
 import { AppError } from "../../middleware/error.middleware.js";
+import { WebsiteModel } from "../websites/websites.model.js";
 import { MediaModel } from "./media.model.js";
 import type { MediaDto, UploadedFileInput } from "./media.types.js";
 import {
@@ -110,6 +111,29 @@ export async function getMediaContent(
     absolutePath: storage.getAbsolutePath(doc.storageKey),
     mimeType: doc.mimeType,
   };
+}
+
+/** Images on published customer sites (no session cookie). */
+export async function getPublicMediaContent(
+  mediaId: string
+): Promise<{ absolutePath: string; mimeType: string }> {
+  if (!Types.ObjectId.isValid(mediaId)) {
+    throw new AppError("Media not found", 404, "MEDIA_NOT_FOUND");
+  }
+  const doc = await MediaModel.findById(mediaId);
+  if (!doc) {
+    throw new AppError("Media not found", 404, "MEDIA_NOT_FOUND");
+  }
+
+  const hasPublishedSite = await WebsiteModel.exists({
+    workspaceId: doc.workspaceId,
+    status: "PUBLISHED",
+  });
+  if (!hasPublishedSite) {
+    throw new AppError("Media not found", 404, "MEDIA_NOT_FOUND");
+  }
+
+  return getMediaContent(doc.workspaceId.toString(), mediaId);
 }
 
 export async function replaceMedia(

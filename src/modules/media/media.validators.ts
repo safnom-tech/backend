@@ -8,3 +8,7 @@ export const mediaIdParamSchema = z.object({
 export const listMediaQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
+
+export const publicMediaIdParamSchema = z.object({
+  mediaId: z.string().min(1),
+});

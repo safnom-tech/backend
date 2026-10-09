@@ -5,7 +5,7 @@ import { requireAuth } from "../../middleware/auth.middleware.js";
 import { requireWorkspaceParamAccess } from "../../middleware/workspace.middleware.js";
 import { workspacesRoutes } from "../../modules/workspaces/index.js";
 import { websitesRoutes } from "../../modules/websites/index.js";
-import { mediaRoutes } from "../../modules/media/index.js";
+import { mediaRoutes, publicMediaRoutes } from "../../modules/media/index.js";
 import { aiRoutes } from "../../modules/ai/index.js";
 import { domainsRoutes } from "../../modules/domains/index.js";
 import {
@@ -25,6 +25,7 @@ const v1Router = Router();
 v1Router.use("/health", healthRouter);
 v1Router.use("/public", publicInquiriesRoutes);
 v1Router.use("/public", publicPublishingRoutes);
+v1Router.use("/public", publicMediaRoutes);
 v1Router.use("/auth", authRoutes);
 v1Router.use("/users", usersRoutes);
 v1Router.use(
