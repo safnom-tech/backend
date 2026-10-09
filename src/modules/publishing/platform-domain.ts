@@ -64,11 +64,11 @@ export function buildTenantSiteUrl(
   platformDomain: string,
   options?: { protocol?: string; port?: string }
 ): string {
-  const protocol = options?.protocol ?? "https";
+  const protocol = (options?.protocol ?? "https").replace(/:$/, "");
   const port = options?.port?.trim();
   const portSuffix =
     port && port !== "80" && port !== "443" ? `:${port}` : "";
-  return `${protocol}//${subdomain}.${platformDomain}${portSuffix}`;
+  return `${protocol}://${subdomain}.${platformDomain}${portSuffix}`;
 }
 
 export function hostFromRequestHeaders(headers: {
